@@ -1,0 +1,57 @@
+
+environment
+	tabular_data
+		tabular_data_file = 'pce_samples.dat'   
+        annotated
+	output_file "matlab_data_vvuq70_pce.output"
+	error_file "matlab_data_vvuq70_pce.error"
+	results_output
+		results_output_file "matlab_data_vvuq70.result"
+		text
+	top_method_pointer "Eval_PCE"        
+        
+method
+  	id_method = 'Eval_PCE'
+	polynomial_chaos
+	    askey
+	    quadrature_order = 4 # n_samples = (quadrature_order)^n_variables
+     	non_nested
+     	variance_based_decomp
+     	
+variables
+	id_variables "vars_x"
+	active
+		all
+	continuous_design 6
+		lower_bounds 1.8 .04 0.15 0.08 69.0e9 450
+		upper_bounds 2.2 .06 0.25 0.12 69.2e9 550
+		descriptors "x1_length" "x2_height" "x3_widthSupport" "x4_widthTip" "x5_elasticModulus" "x6_load" 
+		
+model single
+  id_model = 'PCE_Model'
+  
+  # metrics 'sum_squared' 'root_mean_squared' 
+  # cross_validation folds = 5
+
+interface
+	id_interface "1" # identified with number so that .dat file conveniently includes only numbers
+	analysis_drivers "cscript matlab_data_simulator.vbs"
+		fork
+			parameters_file "in/params_uq-pce.in"
+			results_file "out/results_uq-pce.out"
+			file_tag
+			file_save
+	asynchronous evaluation_concurrency = 8
+
+responses
+	id_responses "beam_deflection"
+	descriptors "d_beam"
+	response_functions 1
+		# scalar_responses 1
+	    field_responses 1
+		  lengths 10
+	no_gradients
+	no_hessians		
+
+
+     	

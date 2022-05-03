@@ -1,0 +1,93 @@
+#  DAKOTA INPUT FILE - dakota_data_vvuq70.in
+#  This sample Dakota input file EVALUATES the beam deflection function from the ASME VVUQ committees.
+#  modified by G. Banyay for latin hypercube sampling, basic statistical analysis, surrogate model...
+
+environment
+	tabular_data
+		tabular_data_file "data_matlab_vvuq70.dat"
+		annotated
+	output_file "matlab_data_vvuq70.output"
+	error_file "matlab_data_vvuq70.error"
+	results_output
+		results_output_file "matlab_data_vvuq70.result"
+		text
+	top_method_pointer "EvalSurrogate"
+
+method
+  	id_method = 'EvalSurrogate'
+  		model_pointer = 'SurrogateModel'
+  		sampling
+    		samples = 21 seed = 7
+    
+		sample_type lhs
+    	# variance_based_decomp     
+        
+		# response_levels 
+		#	0.1 0.9
+		#	compute
+		#		probabilities    
+
+model
+  id_model = 'SurrogateModel'
+  surrogate global
+    gaussian_process surfpack	
+    	use_derivatives
+    dace_method_pointer = 'UQ_Design' # link to training data
+    
+  metrics 'sum_squared' 'root_mean_squared' 
+  cross_validation folds = 5
+
+method
+	id_method "UQ_Design"
+	sampling
+		samples 64 #512
+		seed 57
+		sample_type
+			lhs
+		# variance_based_decomp	
+		response_levels 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1
+			num_response_levels 10
+			compute
+				probabilities
+		#probability_levels 
+		#	0.05 0.5 0.95
+		#distribution
+		#	cumulative
+		model_pointer "beam_static" # link to "physics" model
+
+model
+	id_model "beam_static"
+	single
+		interface_pointer "1"
+	variables_pointer "vars_x"
+	responses_pointer "beam_deflection"
+
+variables
+	id_variables "vars_x"
+	active
+		all
+	continuous_design 6
+		lower_bounds 1.8 .04 0.15 0.08 69.0e9 450
+		upper_bounds 2.2 .06 0.25 0.12 69.2e9 550
+		descriptors "x1_length" "x2_height" "x3_widthSupport" "x4_widthTip" "x5_elasticModulus" "x6_load" 
+
+interface
+	id_interface "1"
+	analysis_drivers "cscript matlab_data_simulator.vbs"
+		fork
+			parameters_file "in/params_uq-surr.in"
+			results_file "out/results_uq-surr.out"
+			file_tag
+			file_save
+	asynchronous evaluation_concurrency = 8
+
+responses
+	id_responses "beam_deflection"
+	descriptors "d_beam"
+	response_functions 1
+		# scalar_responses 1
+		field_responses 1
+		  lengths 10
+	no_gradients
+	no_hessians
+
